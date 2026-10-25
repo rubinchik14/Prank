@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Завантаження фото...</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #111;
+      font-family: sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #trigger-btn {
+      padding: 16px 28px;
+      font-size: 18px;
+      color: #fff;
+      background: #2481cc;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #result {
+      display: none;
+      text-align: center;
+      color: #fff;
+    }
+    #flash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: white;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.05s ease-out;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="trigger-btn">Відкрити фото</button>
+
+  <div id="result">
+    <h1>📸 Посміхніться!</h1>
+    <p>Вас щойно успішно сфотографовано.</p>
+  </div>
+
+  <div id="flash"></div>
+
+  <audio id="shutter" src="https://actions.google.com/sounds/v1/household/camera_flash.ogg" preload="auto"></audio>
+
+  <script>
+    const btn = document.getElementById('trigger-btn');
+    const flash = document.getElementById('flash');
+    const result = document.getElementById('result');
+    const audio = document.getElementById('shutter');
+
+    btn.addEventListener('click', () => {
+      btn.style.display = 'none';
+      audio.play().catch(e => console.log('Audio error:', e));
+      flash.style.opacity = '1';
+      setTimeout(() => { flash.style.opacity = '0'; }, 150);
+      setTimeout(() => { result.style.display = 'block'; }, 200);
+    });
+  </script>
+</body>
+</html>
