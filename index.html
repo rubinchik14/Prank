@@ -3,72 +3,192 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Завантаження фото...</title>
+  <title>Перевірка безпеки...</title>
   <style>
-    body, html {
+    * {
+      box-sizing: border-box;
       margin: 0;
       padding: 0;
+    }
+    body, html {
       width: 100%;
       height: 100%;
-      background: #111;
-      font-family: sans-serif;
+      background: #000;
+      color: #ff3333;
+      font-family: monospace;
+      overflow: hidden;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      overflow: hidden;
     }
-    #trigger-btn {
+
+    /* Стартовий екран з кнопкою */
+    #start-screen {
+      text-align: center;
+      padding: 20px;
+    }
+    #start-btn {
       padding: 16px 28px;
       font-size: 18px;
       color: #fff;
-      background: #2481cc;
+      background: #1a73e8;
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      font-weight: bold;
     }
-    #result {
+
+    /* Контейнер камери та сканера */
+    #camera-screen {
       display: none;
-      text-align: center;
-      color: #fff;
-    }
-    #flash {
-      position: fixed;
-      top: 0;
-      left: 0;
+      position: relative;
       width: 100vw;
       height: 100vh;
-      background: white;
-      opacity: 0;
+      background: #000;
+    }
+
+    /* Відео з фронталки (віддзеркалене як у дзеркалі) */
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+    }
+
+    /* Червона сітка та ефект сканування */
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 6px solid #ff0000;
       pointer-events: none;
-      transition: opacity 0.05s ease-out;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 24px;
+    }
+
+    /* Лазерна лінія сканера */
+    .scan-line {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 0, 0, 0.85);
+      box-shadow: 0 0 15px #ff0000;
+      animation: scan 2s linear infinite alternate;
+    }
+
+    @keyframes scan {
+      0% { top: 0%; }
+      100% { top: 98%; }
+    }
+
+    /* Текстові плашки */
+    .alert-header {
+      background: rgba(0, 0, 0, 0.75);
+      padding: 12px;
+      border: 1px solid #ff0000;
+      text-align: center;
+      font-size: 18px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      animation: blink 0.8s infinite;
+    }
+
+    .alert-footer {
+      background: rgba(0, 0, 0, 0.75);
+      padding: 12px;
+      border: 1px solid #ff0000;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    #error-msg {
+      display: none;
+      color: #ff5555;
+      padding: 20px;
+      text-align: center;
     }
   </style>
 </head>
 <body>
 
-  <button id="trigger-btn">Відкрити фото</button>
-
-  <div id="result">
-    <h1>📸 Посміхніться!</h1>
-    <p>Вас щойно успішно сфотографовано.</p>
+  <!-- Початковий екран, щоб користувач сам клікнув (вимога браузера для камери) -->
+  <div id="start-screen">
+    <button id="start-btn">Підтвердити дію</button>
   </div>
 
-  <div id="flash"></div>
+  <!-- Вікно з камерою і сканером -->
+  <div id="camera-screen">
+    <video id="webcam" autoplay playsinline muted></video>
+    
+    <div class="overlay">
+      <div class="scan-line"></div>
+      <div class="alert-header">
+        ⚠️ УВАГА! ОБ'ЄКТ РОЗПІЗНАНО
+      </div>
+      <div class="alert-footer">
+        <div>СТАТУС: <b>ВАС ЗАФІКСОВАНО В БАЗІ ДАНИХ ФСБ РФ</b></div>
+        <div>ПРОТОКОЛ: ПОШУК І ВІДСТЕЖЕННЯ</div>
+        <div id="target-id">ID: СКАНУВАННЯ...</div>
+      </div>
+    </div>
+  </div>
 
-  <audio id="shutter" src="https://actions.google.com/sounds/v1/household/camera_flash.ogg" preload="auto"></audio>
+  <div id="error-msg">
+    Помилка доступу до камери або дозвіл відхилено.
+  </div>
+
+  <!-- Звук сигналу тривоги -->
+  <audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
 
   <script>
-    const btn = document.getElementById('trigger-btn');
-    const flash = document.getElementById('flash');
-    const result = document.getElementById('result');
-    const audio = document.getElementById('shutter');
+    const startBtn = document.getElementById('start-btn');
+    const startScreen = document.getElementById('start-screen');
+    const cameraScreen = document.getElementById('camera-screen');
+    const video = document.getElementById('webcam');
+    const errorMsg = document.getElementById('error-msg');
+    const targetId = document.getElementById('target-id');
+    const sound = document.getElementById('alarm-sound');
 
-    btn.addEventListener('click', () => {
-      btn.style.display = 'none';
-      audio.play().catch(e => console.log('Audio error:', e));
-      flash.style.opacity = '1';
-      setTimeout(() => { flash.style.opacity = '0'; }, 150);
-      setTimeout(() => { result.style.display = 'block'; }, 200);
+    startBtn.addEventListener('click', async () => {
+      try {
+        // Запит до фронтальної камери
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: false
+        });
+
+        // Ховаємо кнопку, показуємо екран камери
+        startScreen.style.display = 'none';
+        cameraScreen.style.display = 'block';
+
+        // Пускаємо відеопотік
+        video.srcObject = stream;
+
+        // Вмикаємо звук тривоги
+        sound.loop = true;
+        sound.play().catch(() => {});
+
+        // Генеруємо фейковий номер справи
+        const randId = Math.floor(10000000 + Math.random() * 90000000);
+        targetId.innerHTML = `СПРАВА: №RU-${randId} | ЗАКРІПЛЕНО`;
+
+      } catch (err) {
+        startScreen.style.display = 'none';
+        errorMsg.style.display = 'block';
+        console.error(err);
+      }
     });
   </script>
 </body>
